@@ -76,3 +76,12 @@ def approx_jacobian_trace(fx, x):
     eps_dfdx = keep_grad(fx, x, grad_outputs=eps)
     tr_dfdx = (eps_dfdx * eps).sum(-1)
     return tr_dfdx
+
+def exact_jacobian_trace(fx, x):
+    vals = []
+    for i in range(x.size(2)):
+        fxi = fx[..., i]
+        dfxi_dxi = keep_grad(fxi.sum(), x)[..., i]
+        vals.append(dfxi_dxi)
+    vals = torch.stack(vals, dim=2)
+    return vals.sum(dim=2)
