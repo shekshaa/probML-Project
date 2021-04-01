@@ -20,7 +20,7 @@ viz:
 
 trainer:
   type: trainers.ae_trainer_3D
-  epochs: 100
+  epochs: 200
   seed: 100
   sigma_begin: 1
   sigma_end: 0.01
