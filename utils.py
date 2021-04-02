@@ -2,6 +2,7 @@ import torch
 import random
 import numpy as np
 from torch import optim
+import matplotlib.pyplot as plt
 
 
 def get_opt(params, cfgopt):
@@ -85,3 +86,31 @@ def exact_jacobian_trace(fx, x):
         vals.append(dfxi_dxi)
     vals = torch.stack(vals, dim=2)
     return vals.sum(dim=2)
+
+def get_prior(batch_size, num_points, inp_dim):
+    # -1 to 1, uniform
+    return torch.rand(batch_size, num_points, inp_dim) * 2. - 1.
+
+def langevin_dynamics(model, sigmas, num_points=2048, dim=3, eps=2*1e-3, num_steps=10):
+    with torch.no_grad():
+        x_list = []
+        model.eval()
+        x = get_prior(1, num_points, dim).cuda()
+        x_list.append(x.clone())
+        for sigma in sigmas:
+            alpha = eps * ((sigma / sigmas[-1]) ** 2)
+            for t in range(num_steps):
+                z_t = torch.randn_like(x)
+                x += torch.sqrt(alpha) * z_t + (alpha / 2.) * model(x, sigma.view(1, -1))
+            x_list.append(x.clone())
+        return x, x_list
+
+def visualize(pts):
+    pts = pts.detach().cpu().squeeze().numpy()
+    fig = plt.figure(figsize=(3, 3))
+    ax1 = fig.add_subplot(111, projection='3d')
+    ax1.scatter(pts[:, 0], pts[:, 1], pts[:, 2], s=20)
+    ax1.set_xlim(-1, 1)
+    ax1.set_ylim(-1, 1)
+    ax1.set_zlim(-1, 1)
+    plt.show()
