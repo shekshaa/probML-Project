@@ -3,6 +3,19 @@ import random
 import numpy as np
 from torch import optim
 import matplotlib.pyplot as plt
+import argparse
+import logging 
+
+
+def dict2namespace(config):
+    namespace = argparse.Namespace()
+    for key, value in config.items():
+        if isinstance(value, dict):
+            new_value = dict2namespace(value)
+        else:
+            new_value = value
+        setattr(namespace, key, new_value)
+    return namespace
 
 
 def get_opt(params, cfgopt):
@@ -113,4 +126,31 @@ def visualize(pts):
     ax1.set_xlim(-1, 1)
     ax1.set_ylim(-1, 1)
     ax1.set_zlim(-1, 1)
-    plt.show()
+    #plt.show()
+    
+    
+def get_logger(logpath, filepath, package_files=[], displaying=True, saving=True, debug=False):
+    logger = logging.getLogger()
+    if debug:
+        level = logging.DEBUG
+    else:
+        level = logging.INFO
+    logger.setLevel(level)
+    if saving:
+        info_file_handler = logging.FileHandler(logpath, mode="a")
+        info_file_handler.setLevel(level)
+        logger.addHandler(info_file_handler)
+    if displaying:
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(level)
+        logger.addHandler(console_handler)
+#     logger.info(filepath)
+#     with open(filepath, "r") as f:
+#         logger.info(f.read())
+
+#     for f in package_files:
+#         logger.info(f)
+#         with open(f, "r") as package_f:
+#             logger.info(package_f.read())
+
+    return logger
