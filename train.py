@@ -95,20 +95,20 @@ def train(args):
             l2_penalty = (critic_output * critic_output).sum(-1).mean()
             loss = stein.mean()
 
-            cycle_iter = epoch % (cfg.trainer.c_iters + cfg.trainer.s_iters)
+            cycle_iter = itr % (cfg.trainer.c_iters + cfg.trainer.s_iters)
             
             cpu_loss = loss.detach().cpu().item()
             cpu_t1 = t1.mean().detach().cpu().item()
             cpu_t2 = t2.mean().detach().cpu().item()
 
-            if cycle_iter < cfg.trainer.s_iters:
+            if cycle_iter < cfg.trainer.c_iters:
                 (-loss + l2_penalty).backward()
                 opt_criticnet.step()
                 log_message = "Epoch %d itr %d (critic), Loss=%2.5f t1=%2.5f t2=%2.5f" % (epoch, itr, cpu_loss, cpu_t1, cpu_t2)
             else:
                 loss.backward()
                 opt_scorenet.step()
-                log_message = "Epoch (score) %d Loss=%2.5f t1=%2.5f t2=%2.5f" % (epoch, itr, cpu_loss, cpu_t1, cpu_t2)
+                log_message = "Epoch %d itr %d (score), Loss=%2.5f t1=%2.5f t2=%2.5f" % (epoch, itr, cpu_loss, cpu_t1, cpu_t2)
             
             logger.info(log_message)
             
