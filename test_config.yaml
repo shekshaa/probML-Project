@@ -5,18 +5,19 @@ data:
   cates: ['airplane']
   tr_max_sample_points: 2048
   te_max_sample_points: 2048
-  data_dir: data/ShapeNetCore.v2.PC15k
-  batch_size: 32
+  data_dir: data/toy-airplane-data
+  batch_size: 1
   dataset_scale: 1
   normalize_per_shape: False
   normalize_std_per_axis: False
   recenter_per_shape: True
 
-viz:
+log:
   log_freq: 10
-  viz_freq: 5000
-  save_freq: 100
+  viz_freq: 100
+  save_freq: 200
   val_freq: 100
+  save_dir: 'log'
 
 trainer:
   type: trainers.ae_trainer_3D
@@ -25,6 +26,8 @@ trainer:
   sigma_begin: 1
   sigma_end: 0.01
   sigma_num: 10
+  c_iters: 10  # critic number of iterations in each round
+  s_iters: 10  # scorenet number of iterations in each round
   opt_scorenet:
     type: 'adam'
     lr: 1e-3  #  use bs*1e-5/8
@@ -35,6 +38,7 @@ trainer:
     scheduler: linear
     step_epoch: 2000
   opt_criticnet:
+    iters: 10
     type: 'adam'
     lr: 1e-3  #  use bs*1e-5/8
     beta1: 0.9
