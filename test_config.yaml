@@ -17,7 +17,7 @@ log:
   viz_freq: 100
   save_freq: 200
   val_freq: 100
-  save_dir: 'log'
+  save_dir: 'log/sigma-begin-1'  # format: log/<experiment_name>
 
 trainer:
   type: trainers.ae_trainer_3D
