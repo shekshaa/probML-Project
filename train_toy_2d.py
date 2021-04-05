@@ -30,7 +30,6 @@ def parse_args():
 def sample_data(data, n_points):
     x = toy_data.inf_train_gen(data, n_points=n_points)
     x = torch.from_numpy(x).type(torch.float32).to(device)
-    print(x.shape)
     return x
 
 
