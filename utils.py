@@ -127,6 +127,16 @@ def visualize(pts):
     ax1.set_ylim(-1, 1)
     ax1.set_zlim(-1, 1)
     #plt.show()
+
+
+
+def visualize_2d(pts):
+    pts = pts.detach().cpu().squeeze().numpy()
+    fig = plt.figure(figsize=(3, 3))
+    ax1 = fig.add_subplot(111)
+    ax1.scatter(pts[:, 0], pts[:, 1])
+    ax1.set_xlim(-1, 1)
+    ax1.set_ylim(-1, 1)
     
     
 def get_logger(logpath, filepath, package_files=[], displaying=True, saving=True, debug=False):

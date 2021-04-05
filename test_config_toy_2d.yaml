@@ -1,0 +1,68 @@
+data:
+  type: pinwheel
+  dataset_type: pinwheel
+  num_workers: 4
+  cates: null
+  tr_max_sample_points: 2048
+  te_max_sample_points: 2048
+  data_dir: null
+  batch_size: 1
+  dataset_scale: 1
+  normalize_per_shape: False
+  normalize_std_per_axis: False
+  recenter_per_shape: True
+
+log:
+  log_freq: 10
+  viz_freq: 100
+  save_freq: 200
+  val_freq: 100
+  save_dir: 'log/test-toy-2d'  # format: log/<experiment_name>
+
+trainer:
+  type: trainers.ae_trainer_3D
+  epochs: 2000
+  seed: 100
+  sigma_begin: 1
+  sigma_end: 0.01
+  sigma_num: 10
+  c_iters: 10  # critic number of iterations in each round
+  s_iters: 10  # scorenet number of iterations in each round
+  opt_scorenet:
+    type: 'adam'
+    lr: 1e-3  #  use bs*1e-5/8
+    beta1: 0.9
+    beta2: 0.999
+    momentum: 0.9  # for SGD
+    weight_decay: 0.
+    scheduler: linear
+    step_epoch: 2000
+  opt_criticnet:
+    iters: 10
+    type: 'adam'
+    lr: 1e-3  #  use bs*1e-5/8
+    beta1: 0.9
+    beta2: 0.999
+    momentum: 0.9  # for SGD
+    weight_decay: 0.
+    scheduler: linear
+    step_epoch: 2000
+
+    
+models:
+  scorenet:  # [dim] - [hid_dims] - [dim]
+    type: models.decoders.resnet_add
+    dim: 3
+    out_dim: 3
+    hidden_size: 256
+    n_blocks: 24
+    sigma_condition: True
+    param_likelihood: False
+    xyz_condition: True
+    z_dim: 128
+
+inference:
+  step_size_ratio: 1
+  num_steps: 10
+  num_points: 2048
+  weight: 1
