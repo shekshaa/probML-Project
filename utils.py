@@ -118,6 +118,25 @@ def langevin_dynamics(model, sigmas, num_points=2048, dim=3, eps=2*1e-3, num_ste
             x_list.append(x.clone())
         return x, x_list
 
+
+def langevin_dynamics_ebm(model, sigmas, num_points=2048, dim=3, eps=2*1e-3, num_steps=10):
+    x_list = []
+    model.eval()
+    x = get_prior(1, num_points, dim).cuda()
+    
+    x_list.append(x.clone())
+    for sigma in sigmas:
+        alpha = eps * ((sigma / sigmas[-1]) ** 2)
+        for t in range(num_steps):
+            z_t = torch.randn_like(x)
+            x_ = x.detach().requires_grad_()
+            logp_u = model(x_, sigma.view(1, -1))
+            score = keep_grad(logp_u.sum(), x_)
+            x += torch.sqrt(alpha) * z_t + (alpha / 2.) * score
+        x_list.append(x.clone())
+    return x, x_list
+
+
 def visualize(pts):
     pts = pts.detach().cpu().squeeze().numpy()
     fig = plt.figure(figsize=(3, 3))
