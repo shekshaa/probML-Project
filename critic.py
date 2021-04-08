@@ -43,7 +43,7 @@ class ResnetBlockConv1d(nn.Module):
             self.shortcut = nn.Conv1d(in_dim, out_dim, 1, bias=False)
 
         # Initialization
-        nn.init.zeros_(self.fc_1.weight)
+        # nn.init.zeros_(self.fc_1.weight)
 
     def forward(self, x, c):
         net = self.fc_0(self.actvn(self.bn_0(x)))
