@@ -34,7 +34,7 @@ class ResnetBlockConv1d(nn.Module):
 
         self.fc_0 = nn.Conv1d(in_dim, hidden_dim, 1)
         self.fc_1 = nn.Conv1d(hidden_dim, out_dim, 1)
-        self.fc_c = nn.Conv1d(c_dim, out_dim, 1)
+        #self.fc_c = nn.Conv1d(c_dim, out_dim, 1)
         self.actvn = nn.ReLU()
 
         if in_dim == out_dim:
@@ -45,7 +45,7 @@ class ResnetBlockConv1d(nn.Module):
         # Initialization
         nn.init.zeros_(self.fc_1.weight)
 
-    def forward(self, x, c):
+    def forward(self, x):
         net = self.fc_0(self.actvn(self.bn_0(x)))
         dx = self.fc_1(self.actvn(self.bn_1(net)))
 
@@ -54,7 +54,8 @@ class ResnetBlockConv1d(nn.Module):
         else:
             x_s = x
 
-        out = x_s + dx + self.fc_c(c)
+        #out = x_s + dx + self.fc_c(c)
+        out = x_s + dx
 
         return out
 
@@ -75,7 +76,9 @@ class Scorenet(nn.Module):
         self.n_blocks = n_blocks
 
         # Input = Conditional = dim (xyz) + 1 (sigma)
-        c_dim = in_dim + 1
+        #c_dim = in_dim + 1
+        c_dim = in_dim
+
         self.conv_p = nn.Conv1d(c_dim, hidden_dim, 1)
         self.blocks = nn.ModuleList([ResnetBlockConv1d(c_dim, hidden_dim) for _ in range(n_blocks)])
         self.bn_out = nn.BatchNorm1d(hidden_dim)
@@ -83,7 +86,7 @@ class Scorenet(nn.Module):
         self.actvn_out = nn.ReLU()
 
     # This should have the same signature as the sig condition one
-    def forward(self, x, c):
+    def forward(self, x):
         """
         :param x: (bs, npoints, self.dim) Input coordinate (xyz)
         :param c: (bs, 1) sigma
@@ -92,10 +95,11 @@ class Scorenet(nn.Module):
         p = x.transpose(1, 2)  # (bs, dim, n_points)
         batch_size, D, num_points = p.size()
 
-        c_expand = c.unsqueeze(2).expand(-1, -1, num_points)
-        c_xyz = torch.cat([p, c_expand], dim=1)
-        net = self.actvn_out(self.conv_p(c_xyz))
+        #c_expand = c.unsqueeze(2).expand(-1, -1, num_points)
+        #c_xyz = torch.cat([p, c_expand], dim=1)
+        #net = self.actvn_out(self.conv_p(c_xyz))
+        net = self.actvn_out(self.conv_p(p))
         for block in self.blocks:
-            net = block(net, c_xyz)
+            net = block(net)
         out = self.conv_out(self.actvn_out(self.bn_out(net))).transpose(1, 2)
         return out

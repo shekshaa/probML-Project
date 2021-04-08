@@ -47,15 +47,15 @@ def train(args):
     
     
     # sigmas
-    if hasattr(cfg.trainer, "sigmas"):
-        np_sigmas = cfg.trainer.sigmas
-    else:
-        sigma_begin = float(cfg.trainer.sigma_begin)
-        sigma_end = float(cfg.trainer.sigma_end)
-        num_classes = int(cfg.trainer.sigma_num)
-        np_sigmas = np.exp(np.linspace(np.log(sigma_begin), np.log(sigma_end), num_classes))
+    # if hasattr(cfg.trainer, "sigmas"):
+    #     np_sigmas = cfg.trainer.sigmas
+    # else:
+    #     sigma_begin = float(cfg.trainer.sigma_begin)
+    #     sigma_end = float(cfg.trainer.sigma_end)
+    #     num_classes = int(cfg.trainer.sigma_num)
+    #     np_sigmas = np.exp(np.linspace(np.log(sigma_begin), np.log(sigma_end), num_classes))
 
-    sigmas = torch.tensor(np.array(np_sigmas)).float().to(device).view(-1, 1)
+    # sigmas = torch.tensor(np.array(np_sigmas)).float().to(device).view(-1, 1)
     
     score_net = Scorenet(in_dim=2)
     critic_net = Criticnet(in_dim=2)
@@ -67,7 +67,6 @@ def train(args):
     
     itr = 0
 
-    
     for epoch in range(cfg.trainer.epochs):
         tr_pts = sample_data('pinwheel', 2048).view(1, -1, 2)
         score_net.train()
@@ -82,20 +81,23 @@ def train(args):
         batch_size = tr_pts.size(0)
         
         # Randomly sample sigma
-        labels = torch.randint(0, len(sigmas), (batch_size,), device=tr_pts.device)
-        used_sigmas = sigmas[labels].float()
+        #labels = torch.randint(0, len(sigmas), (batch_size,), device=tr_pts.device)
+        #used_sigmas = sigmas[labels].float()
         
-        perturbed_points = tr_pts + torch.randn_like(tr_pts) * used_sigmas.view(batch_size, 1, 1)
+        #perturbed_points = tr_pts + torch.randn_like(tr_pts) * used_sigmas.view(batch_size, 1, 1)
+        perturbed_points = tr_pts
 
-        score_pred = score_net(perturbed_points, used_sigmas)
+        #score_pred = score_net(perturbed_points, used_sigmas)
+        score_pred = score_net(perturbed_points)
         
-        critic_output = critic_net(perturbed_points, used_sigmas)
+        #critic_output = critic_net(perturbed_points, used_sigmas)
+        critic_output = critic_net(perturbed_points)
 
         t1 = (score_pred * critic_output).sum(-1)
         t2 = exact_jacobian_trace(critic_output, perturbed_points)
 
         stein = t1 + t2
-        l2_penalty = (critic_output * critic_output).sum(-1).mean()
+        l2_penalty = (critic_output * critic_output).sum(-1).mean() * 10.
         loss = stein.mean()
 
         cycle_iter = itr % (cfg.trainer.c_iters + cfg.trainer.s_iters)

@@ -128,7 +128,7 @@ def langevin_dynamics_lsd(f, l=1., e=.01, num_points=2048, n_steps=100, anneal=N
         else:
             lrs = [l for _ in range(n_steps)]
         for this_lr in lrs:
-            x_k.data += this_lr * f(x_k, torch.tensor(this_lr).view(1, 1).cuda()) + torch.randn_like(x_k) * e
+            x_k.data += this_lr * f(x_k) + torch.randn_like(x_k) * e
         final_samples = x_k.detach()
         return final_samples
 
