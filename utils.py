@@ -93,16 +93,15 @@ def approx_jacobian_trace(fx, x):
 
 def exact_jacobian_trace(fx, x):
     vals = []
-    for i in range(x.size(2)):
+    for i in range(x.size(-1)):
         fxi = fx[..., i]
         dfxi_dxi = keep_grad(fxi.sum(), x)[..., i]
         vals.append(dfxi_dxi)
-    vals = torch.stack(vals, dim=2)
-    return vals.sum(dim=2)
+    vals = torch.stack(vals, dim=-1)
+    return vals.sum(dim=-1)
 
-def get_prior(batch_size, num_points, inp_dim):
-    # -1 to 1, uniform
-    return torch.rand(batch_size, num_points, inp_dim) * 2. - 1.
+def get_prior(num_points, inp_dim):
+    return torch.rand(num_points, inp_dim) * 2. - 1.
 
 def langevin_dynamics(model, sigmas, num_points=2048, dim=3, eps=2*1e-3, num_steps=10):
     with torch.no_grad():
@@ -119,7 +118,7 @@ def langevin_dynamics(model, sigmas, num_points=2048, dim=3, eps=2*1e-3, num_ste
         return x, x_list
 
 def langevin_dynamics_lsd(f, l=1., e=.01, num_points=2048, n_steps=100, anneal=None):
-        x_k = get_prior(1, num_points, 2).cuda()
+        x_k = get_prior(num_points, 2).cuda()
         # sgld
         if anneal == "lin":
             lrs = list(reversed(np.linspace(e, l, n_steps)))

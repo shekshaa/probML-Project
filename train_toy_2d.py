@@ -3,7 +3,7 @@ import torch.nn as nn
 import yaml
 import torch.distributions as distributions
 import torch.optim as optim
-from critic import Criticnet
+from critic import Criticnet, SmallMLP
 from scorenet import Scorenet
 import os
 from datasets import toy_data
@@ -57,8 +57,11 @@ def train(args):
 
     # sigmas = torch.tensor(np.array(np_sigmas)).float().to(device).view(-1, 1)
     
-    score_net = Scorenet(in_dim=2)
-    critic_net = Criticnet(in_dim=2)
+    #score_net = Scorenet(in_dim=2)
+    score_net = SmallMLP(n_dims=2, n_out=2)
+    #critic_net = Criticnet(in_dim=2)
+    critic_net = SmallMLP(n_dims=2, n_out=2)
+
     critic_net.to(device)
     score_net.to(device)
     
@@ -68,7 +71,7 @@ def train(args):
     itr = 0
 
     for epoch in range(cfg.trainer.epochs):
-        tr_pts = sample_data('pinwheel', 2048).view(1, -1, 2)
+        tr_pts = sample_data('pinwheel', 2048).view(-1, 2)
         score_net.train()
         critic_net.train()
         opt_scorenet.zero_grad()
@@ -133,14 +136,14 @@ def train(args):
             #pt_cl, _ = langevin_dynamics(score_net, sigmas, dim=2, eps=1e-4, num_steps=cfg.inference.num_steps)
             x_final = langevin_dynamics_lsd(score_net, l=1., e=.01, num_points=2048, n_steps=10)
 
-            visualize_2d(x_final[0])
+            visualize_2d(x_final)
 
             fig_filename = os.path.join(cfg.log.save_dir, 'figs', 'sample-{:04d}.png'.format(itr))
             os.makedirs(os.path.dirname(fig_filename), exist_ok=True)
             plt.savefig(fig_filename)
 
 
-            visualize_2d(perturbed_points[0])
+            visualize_2d(perturbed_points)
 
             fig_filename = os.path.join(cfg.log.save_dir, 'figs', 'perturbed-{:04d}.png'.format(itr))
             os.makedirs(os.path.dirname(fig_filename), exist_ok=True)

@@ -1,6 +1,19 @@
 import torch
 import torch.nn as nn
 
+class Swish(nn.Module):
+    def __init__(self, dim=-1):
+        super(Swish, self).__init__()
+        if dim > 0:
+            self.beta = nn.Parameter(torch.ones((dim,)))
+        else:
+            self.beta = torch.ones((1,))
+
+    def forward(self, x):
+        if len(x.size()) == 2:
+            return x * torch.sigmoid(self.beta[None, :] * x)
+        else:
+            return x * torch.sigmoid(self.beta[None, :, None, None] * x)
 
 class ResnetBlockConv1d(nn.Module):
     """ 1D-Convolutional ResNet block class.
@@ -59,7 +72,6 @@ class ResnetBlockConv1d(nn.Module):
 
         return out
 
-
 class Criticnet(nn.Module):
     """ Decoder conditioned on sigma.
 
@@ -103,3 +115,36 @@ class Criticnet(nn.Module):
             net = block(net)
         out = self.conv_out(self.actvn_out(self.bn_out(net))).transpose(1, 2)
         return out
+
+class SmallMLP(nn.Module):
+    def __init__(self, n_dims, n_out=2, n_hid=300, layer=nn.Linear, dropout=False):
+        super(SmallMLP, self).__init__()
+        self._built = False
+        if dropout:
+            self.net = nn.Sequential(
+                layer(n_dims, n_hid),
+                Swish(n_hid),
+                nn.Dropout(.5),
+                layer(n_hid, n_hid),
+                Swish(n_hid),
+                nn.Dropout(.5),
+                layer(n_hid, n_out)
+            )
+        else:
+            self.net = nn.Sequential(
+                layer(n_dims, n_hid),
+                Swish(n_hid),
+                layer(n_hid, n_hid),
+                Swish(n_hid),
+                layer(n_hid, n_out)
+            )
+        self.normalized = False
+
+    def forward(self, x):
+        # x = x.view(x.size(0), -1)
+        out = self.net(x)
+        out = out.squeeze()
+        if self.normalized:
+            return out / (out.norm(dim=1, keepdim=True) + 1e-6)
+        else:
+            return out
