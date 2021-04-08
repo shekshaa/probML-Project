@@ -10,7 +10,7 @@ from datasets import toy_data
 import numpy as np 
 import matplotlib
 from utils import keep_grad, approx_jacobian_trace, exact_jacobian_trace, \
-    set_random_seed, get_logger, dict2namespace, get_opt, visualize_2d, langevin_dynamics
+    set_random_seed, get_logger, dict2namespace, get_opt, visualize_2d, langevin_dynamics_lsd
 import importlib
 import argparse
 import matplotlib.pyplot as plt
@@ -128,11 +128,19 @@ def train(args):
         if itr % cfg.log.viz_freq == 0:
             plt.clf()
 
-            pt_cl, _ = langevin_dynamics(score_net, sigmas, dim=2, eps=1e-4, num_steps=cfg.inference.num_steps)
+            #pt_cl, _ = langevin_dynamics(score_net, sigmas, dim=2, eps=1e-4, num_steps=cfg.inference.num_steps)
+            x_final = langevin_dynamics_lsd(score_net, l=1., e=.01, num_points=2048, n_steps=10)
 
-            visualize_2d(pt_cl)
+            visualize_2d(x_final[0])
 
-            fig_filename = os.path.join(cfg.log.save_dir, 'figs', '{:04d}.png'.format(itr))
+            fig_filename = os.path.join(cfg.log.save_dir, 'figs', 'sample-{:04d}.png'.format(itr))
+            os.makedirs(os.path.dirname(fig_filename), exist_ok=True)
+            plt.savefig(fig_filename)
+
+
+            visualize_2d(perturbed_points[0])
+
+            fig_filename = os.path.join(cfg.log.save_dir, 'figs', 'perturbed-{:04d}.png'.format(itr))
             os.makedirs(os.path.dirname(fig_filename), exist_ok=True)
             plt.savefig(fig_filename)
         

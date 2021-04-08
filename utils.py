@@ -118,6 +118,40 @@ def langevin_dynamics(model, sigmas, num_points=2048, dim=3, eps=2*1e-3, num_ste
             x_list.append(x.clone())
         return x, x_list
 
+def langevin_dynamics_lsd(f, l=1., e=.01, num_points=2048, n_steps=100, anneal=None):
+        x_k = get_prior(1, num_points, 2).cuda()
+        # sgld
+        if anneal == "lin":
+            lrs = list(reversed(np.linspace(e, l, n_steps)))
+        elif anneal == "log":
+            lrs = np.logspace(np.log10(l), np.log10(e))
+        else:
+            lrs = [l for _ in range(n_steps)]
+        for this_lr in lrs:
+            x_k.data += this_lr * f(x_k, torch.tensor(this_lr).view(1, 1).cuda()) + torch.randn_like(x_k) * e
+        final_samples = x_k.detach()
+        return final_samples
+
+
+
+def langevin_dynamics_ebm(model, sigmas, num_points=2048, dim=3, eps=2*1e-3, num_steps=10):
+    x_list = []
+    model.eval()
+    x = get_prior(1, num_points, dim).cuda()
+    
+    x_list.append(x.clone())
+    for sigma in sigmas:
+        alpha = eps * ((sigma / sigmas[-1]) ** 2)
+        for t in range(num_steps):
+            z_t = torch.randn_like(x)
+            x_ = x.detach().requires_grad_()
+            logp_u = model(x_, sigma.view(1, -1))
+            score = keep_grad(logp_u.sum(), x_)
+            x += torch.sqrt(alpha) * z_t + (alpha / 2.) * score
+        x_list.append(x.clone())
+    return x, x_list
+
+
 def visualize(pts):
     pts = pts.detach().cpu().squeeze().numpy()
     fig = plt.figure(figsize=(3, 3))
@@ -135,8 +169,8 @@ def visualize_2d(pts):
     fig = plt.figure(figsize=(3, 3))
     ax1 = fig.add_subplot(111)
     ax1.scatter(pts[:, 0], pts[:, 1])
-    ax1.set_xlim(-1, 1)
-    ax1.set_ylim(-1, 1)
+    ax1.set_xlim(-5, 5)
+    ax1.set_ylim(-5, 5)
     
     
 def get_logger(logpath, filepath, package_files=[], displaying=True, saving=True, debug=False):
