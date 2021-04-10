@@ -63,6 +63,6 @@ models:
 
 inference:
   step_size_ratio: 1
-  num_steps: 10
+  num_steps: 100
   num_points: 2048
   weight: 1

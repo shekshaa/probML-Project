@@ -85,11 +85,13 @@ def set_random_seed(seed):
 def keep_grad(output, input, grad_outputs=None):
     return torch.autograd.grad(output, input, grad_outputs=grad_outputs, retain_graph=True, create_graph=True)[0]
 
+
 def approx_jacobian_trace(fx, x):
     eps = torch.randn_like(fx)
     eps_dfdx = keep_grad(fx, x, grad_outputs=eps)
     tr_dfdx = (eps_dfdx * eps).sum(-1)
     return tr_dfdx
+
 
 def exact_jacobian_trace(fx, x):
     vals = []
@@ -100,9 +102,11 @@ def exact_jacobian_trace(fx, x):
     vals = torch.stack(vals, dim=2)
     return vals.sum(dim=2)
 
+
 def get_prior(batch_size, num_points, inp_dim):
     # -1 to 1, uniform
     return torch.rand(batch_size, num_points, inp_dim) * 2. - 1.
+
 
 def langevin_dynamics(model, sigmas, num_points=2048, dim=3, eps=2*1e-3, num_steps=10):
     with torch.no_grad():
@@ -117,6 +121,25 @@ def langevin_dynamics(model, sigmas, num_points=2048, dim=3, eps=2*1e-3, num_ste
                 x += torch.sqrt(alpha) * z_t + (alpha / 2.) * model(x, sigma.view(1, -1))
             x_list.append(x.clone())
         return x, x_list
+
+
+def langevin_dynamics_v2(model, sigmas, num_points=2048, dim=3, eps=2*1e-3, num_steps=10):
+    """
+    Model is not conditioned on the sigma
+    """
+    with torch.no_grad():
+        x_list = []
+        model.eval()
+        x = get_prior(1, num_points, dim).cuda()
+        x_list.append(x.clone())
+        for sigma in sigmas:
+            alpha = eps * ((sigma / sigmas[-1]) ** 2)
+            for t in range(num_steps):
+                z_t = torch.randn_like(x)
+                x += torch.sqrt(alpha) * z_t + (alpha / 2.) * model(x)
+            x_list.append(x.clone())
+        return x, x_list
+
 
 def langevin_dynamics_lsd(f, l=1., e=.01, num_points=2048, n_steps=100, anneal=None):
         x_k = get_prior(1, num_points, 2).cuda()
