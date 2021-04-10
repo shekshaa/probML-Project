@@ -2,7 +2,9 @@ import torch
 import random
 import numpy as np
 from torch import optim
+from torch import nn
 import matplotlib.pyplot as plt
+import torch.nn.utils.spectral_norm as spectral_norm
 import argparse
 import logging 
 
@@ -221,3 +223,9 @@ def get_logger(logpath, filepath, package_files=[], displaying=True, saving=True
 #             logger.info(package_f.read())
 
     return logger
+
+
+def apply_spectral_norm(module):
+    norm = nn.BatchNorm1d
+    if not isinstance(module, norm) and 'weight' in module._parameters:
+        spectral_norm(module)

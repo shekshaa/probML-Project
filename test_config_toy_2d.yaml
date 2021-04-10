@@ -17,7 +17,7 @@ log:
   viz_freq: 100
   save_freq: 200
   val_freq: 100
-  save_dir: 'log/test-toy-2d'  # format: log/<experiment_name>
+  save_dir: 'log/toy-2d-no-sigma'  # format: log/<experiment_name>
 
 trainer:
   type: trainers.ae_trainer_3D
@@ -60,6 +60,8 @@ models:
     param_likelihood: False
     xyz_condition: True
     z_dim: 128
+  critic:
+    spectral_norm: False
 
 inference:
   step_size_ratio: 1

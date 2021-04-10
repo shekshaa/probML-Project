@@ -10,7 +10,8 @@ from datasets import toy_data
 import numpy as np 
 import matplotlib
 from utils import keep_grad, approx_jacobian_trace, exact_jacobian_trace, \
-    set_random_seed, get_logger, dict2namespace, get_opt, visualize_2d, langevin_dynamics_v2
+    set_random_seed, get_logger, dict2namespace, get_opt, visualize_2d, langevin_dynamics_v2, \
+    apply_spectral_norm
 import importlib
 import argparse
 import matplotlib.pyplot as plt
@@ -59,6 +60,10 @@ def train(args):
     
     score_net = Scorenet(in_dim=2)
     critic_net = Criticnet(in_dim=2)
+    
+    if cfg.models.critic.spectral_norm:
+        critic_net.apply(apply_spectral_norm)
+
     critic_net.to(device)
     score_net.to(device)
     
