@@ -13,21 +13,21 @@ data:
   recenter_per_shape: True
 
 log:
-  log_freq: 10
-  viz_freq: 100
-  save_freq: 200
-  val_freq: 100
+  log_freq: 100
+  viz_freq: 500
+  save_freq: 1000
+  val_freq: 500
   save_dir: 'log/test-toy-2d'  # format: log/<experiment_name>
 
 trainer:
   type: trainers.ae_trainer_3D
-  epochs: 2000
+  epochs: 15000
   seed: 100
   sigma_begin: 1
   sigma_end: 0.01
   sigma_num: 10
-  c_iters: 10  # critic number of iterations in each round
-  s_iters: 10  # scorenet number of iterations in each round
+  c_iters: 5  # critic number of iterations in each round
+  s_iters: 1  # scorenet number of iterations in each round
   opt_scorenet:
     type: 'adam'
     lr: 1e-3  #  use bs*1e-5/8

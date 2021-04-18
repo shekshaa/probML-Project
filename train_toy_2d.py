@@ -134,7 +134,7 @@ def train(args):
             plt.clf()
 
             #pt_cl, _ = langevin_dynamics(score_net, sigmas, dim=2, eps=1e-4, num_steps=cfg.inference.num_steps)
-            x_final = langevin_dynamics_lsd(score_net, l=1., e=.01, num_points=2048, n_steps=10)
+            x_final = langevin_dynamics_lsd(score_net, l=0.004, e=.05, num_points=2048)
 
             visualize_2d(x_final)
 
@@ -143,11 +143,11 @@ def train(args):
             plt.savefig(fig_filename)
 
 
-            visualize_2d(perturbed_points)
+            # visualize_2d(perturbed_points)
 
-            fig_filename = os.path.join(cfg.log.save_dir, 'figs', 'perturbed-{:04d}.png'.format(itr))
-            os.makedirs(os.path.dirname(fig_filename), exist_ok=True)
-            plt.savefig(fig_filename)
+            # fig_filename = os.path.join(cfg.log.save_dir, 'figs', 'perturbed-{:04d}.png'.format(itr))
+            # os.makedirs(os.path.dirname(fig_filename), exist_ok=True)
+            # plt.savefig(fig_filename)
         
         itr += 1
 
