@@ -1,6 +1,6 @@
 import numpy as np
 import sklearn
-import sklearn.datasets
+import sklearn.datasets 
 from sklearn.utils import shuffle as util_shuffle
 import torch
 import torch.distributions as tdist
@@ -31,3 +31,28 @@ def inf_train_gen(data, rng=None, n_points=200):
         rotations = np.reshape(rotations.T, (-1, 2, 2))
 
         return 2 * rng.permutation(np.einsum("ti,tij->tj", features, rotations))
+    
+    elif data == 'moons':
+        data = sklearn.datasets.make_moons(n_samples=n_points, noise=0.1)
+        return data[0]
+
+    elif data == 'gaussian':
+        return np.random.randn(n_points, 2) * 0.1
+    
+    elif data == 'one_moon':
+        outer_circ_x = np.cos(np.linspace(0, np.pi, n_points // 2))
+        outer_circ_y = np.sin(np.linspace(0, np.pi, n_points // 2))
+        # inner_circ_x = 1 - np.cos(np.linspace(0, np.pi, n_points // 2))
+        # inner_circ_y = 1 - np.sin(np.linspace(0, np.pi, n_points // 2)) - 3
+
+        outer_circ_x += np.random.randn(*outer_circ_x.shape) * 0.1
+        outer_circ_y += np.random.randn(*outer_circ_x.shape) * 0.1
+        # inner_circ_x += np.random.randn(*outer_circ_x.shape) * 0.1
+        # inner_circ_y += np.random.randn(*outer_circ_x.shape) * 0.1
+
+        # X = np.vstack([np.append(outer_circ_x, inner_circ_x),
+        # np.append(outer_circ_y, inner_circ_y)]).T
+
+        X = np.vstack([outer_circ_x, outer_circ_y]).T
+        
+        return X

@@ -5,6 +5,7 @@ from torch import optim
 import matplotlib.pyplot as plt
 import argparse
 import logging 
+from sklearn.datasets import make_moons
 
 
 def dict2namespace(config):
@@ -165,7 +166,7 @@ def visualize(pts):
 
 def visualize_2d(pts):
     pts = pts.detach().cpu().squeeze().numpy()
-    fig = plt.figure(figsize=(3, 3))
+    fig = plt.figure(figsize=(10, 10))
     ax1 = fig.add_subplot(111)
     ax1.scatter(pts[:, 0], pts[:, 1])
     ax1.set_xlim(-5, 5)
