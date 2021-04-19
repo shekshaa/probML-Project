@@ -31,3 +31,21 @@ def inf_train_gen(data, rng=None, n_points=200):
         rotations = np.reshape(rotations.T, (-1, 2, 2))
 
         return 2 * rng.permutation(np.einsum("ti,tij->tj", features, rotations))
+    
+    elif data == "swissroll":
+        data = sklearn.datasets.make_swiss_roll(n_samples=n_points, noise=0.2)[0]
+        data = data.astype("float32")[:, [0, 2]]
+        data /= 5
+        return data
+
+    elif data == "circles":
+        data = sklearn.datasets.make_circles(n_samples=n_points, factor=.5, noise=0.08)[0]
+        data = data.astype("float32")
+        data *= 3
+        return data
+    
+    elif data == "checkerboard":
+        x1 = np.random.rand(n_points) * 4 - 2
+        x2_ = np.random.rand(n_points) - np.random.randint(0, 2, n_points) * 2
+        x2 = x2_ + (np.floor(x1) % 2)
+        return np.concatenate([x1[:, None], x2[:, None]], 1) * 2
