@@ -3,7 +3,7 @@ import torch.nn as nn
 import yaml
 import torch.distributions as distributions
 import torch.optim as optim
-from critic import Criticnet
+from critic import Criticnet, SmallMLP
 from scorenet import Scorenet
 import os
 import numpy as np 
@@ -13,9 +13,38 @@ from utils import keep_grad, approx_jacobian_trace, exact_jacobian_trace, \
 import importlib
 import argparse
 import matplotlib.pyplot as plt
+import wandb
+from time import time
 
 
-device = torch.device('cuda:' + str(0) if torch.cuda.is_available() else 'cpu')
+USE_WANDB = True
+
+device = torch.device('cuda:' + str(1) if torch.cuda.is_available() else 'cpu')
+
+def setup_wandb(cfg):
+    wandb.init(project='prob-learn-proj')
+
+    wandb.config.epochs = cfg.trainer.epochs
+    wandb.config.save_dir = cfg.log.save_dir
+    wandb.config.lr_scorenet = cfg.trainer.opt_scorenet.lr
+    wandb.config.lr_criticnet = cfg.trainer.opt_criticnet.lr
+    wandb.config.val_freq = cfg.log.val_freq
+    wandb.config.c_iters = cfg.trainer.c_iters
+    wandb.config.s_iters = cfg.trainer.s_iters
+    wandb.config.batch_size = cfg.data.batch_size
+    wandb.config.scorenet_type = cfg.models.scorenet.type
+    wandb.config.criticnet_type = cfg.models.criticnet.type
+    wandb.config.data_dir = cfg.data.data_dir
+    wandb.config.dataset_type = cfg.data.dataset_type
+    wandb.config.tr_max_sample_points = cfg.data.tr_max_sample_points
+    wandb.config.te_max_sample_points = cfg.data.te_max_sample_points
+    wandb.config.sampling_eps = cfg.inference.eps
+    wandb.config.sampling_numsteps = cfg.inference.num_steps
+    wandb.config.sampling_numpoints = cfg.inference.num_points
+
+
+    if cfg.models.scorenet.type == 'models.decoders.resnet_add':
+        wandb.config.scorenet_nblocks = cfg.models.scorenet.n_blocks
 
 
 def parse_args():
@@ -33,11 +62,15 @@ def train(args):
         cfg = yaml.load(f, Loader=yaml.FullLoader)
         
     cfg = dict2namespace(cfg)
+
+    set_random_seed(getattr(cfg.trainer, "seed", 666))
     os.makedirs(cfg.log.save_dir, exist_ok=True)
+
+    if USE_WANDB:
+        setup_wandb(cfg)
     
     logger = get_logger(logpath=os.path.join(cfg.log.save_dir, 'logs'), filepath=os.path.abspath(__file__))
     logger.info(args.cfg)
-    
     
     # sigmas
     if hasattr(cfg.trainer, "sigmas"):
@@ -50,8 +83,22 @@ def train(args):
 
     sigmas = torch.tensor(np.array(np_sigmas)).float().to(device).view(-1, 1)
     
-    score_net = Scorenet()
-    critic_net = Criticnet()
+    sigmas = sigmas[-1:]  #TODO: Just with one sigma for now!
+    if USE_WANDB:
+        wandb.config.sigma = sigmas.item()
+    
+    if cfg.models.scorenet.type == 'small_mlp':
+        score_net = SmallMLP(in_dim=3)
+    else:
+        score_net = Scorenet()
+    print(score_net)
+
+    if cfg.models.criticnet.type == 'small_mlp':
+        critic_net = SmallMLP(in_dim=3)
+    else:
+        critic_net = Criticnet()
+    print(critic_net)
+    
     critic_net.to(device)
     score_net.to(device)
     
@@ -65,7 +112,6 @@ def train(args):
     train_loader = loaders['train_loader']
     test_loader = loaders['test_loader']
 
-    
     for epoch in range(cfg.trainer.epochs):
         for data in train_loader:
             score_net.train()
@@ -85,7 +131,6 @@ def train(args):
             perturbed_points = tr_pts + torch.randn_like(tr_pts) * used_sigmas.view(batch_size, 1, 1)
 
             score_pred = score_net(perturbed_points, used_sigmas)
-            
             critic_output = critic_net(perturbed_points, used_sigmas)
 
             t1 = (score_pred * critic_output).sum(-1)
@@ -100,6 +145,10 @@ def train(args):
             cpu_loss = loss.detach().cpu().item()
             cpu_t1 = t1.mean().detach().cpu().item()
             cpu_t2 = t2.mean().detach().cpu().item()
+            
+            if USE_WANDB:
+                wandb.log({'epoch': epoch, 'loss_term1': cpu_t1, 'loss_term2': cpu_t2, \
+                    'loss': cpu_loss,'itaration': itr})
 
             if cycle_iter < cfg.trainer.c_iters:
                 (-loss + l2_penalty).backward()
@@ -110,7 +159,8 @@ def train(args):
                 opt_scorenet.step()
                 log_message = "Epoch %d itr %d (score), Loss=%2.5f t1=%2.5f t2=%2.5f" % (epoch, itr, cpu_loss, cpu_t1, cpu_t2)
             
-            logger.info(log_message)
+            if itr % cfg.log.log_freq == 0:
+                logger.info(log_message)
             
             if itr % cfg.log.save_freq == 0:
                 score_net.cpu()
@@ -127,7 +177,10 @@ def train(args):
 
                 pt_cl, _ = langevin_dynamics(score_net, sigmas, eps=1e-4, num_steps=cfg.inference.num_steps)
 
-                visualize(pt_cl)
+                fig, ax = visualize(pt_cl, return_fig=True)
+
+                if USE_WANDB:
+                    wandb.log({"langevin_dynamics": wandb.Image(ax)})
 
                 fig_filename = os.path.join(cfg.log.save_dir, 'figs', '{:04d}.png'.format(itr))
                 os.makedirs(os.path.dirname(fig_filename), exist_ok=True)

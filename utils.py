@@ -5,6 +5,7 @@ from torch import optim
 import matplotlib.pyplot as plt
 import argparse
 import logging 
+from sklearn.datasets import make_moons
 
 
 def dict2namespace(config):
@@ -85,24 +86,28 @@ def set_random_seed(seed):
 def keep_grad(output, input, grad_outputs=None):
     return torch.autograd.grad(output, input, grad_outputs=grad_outputs, retain_graph=True, create_graph=True)[0]
 
+
 def approx_jacobian_trace(fx, x):
     eps = torch.randn_like(fx)
     eps_dfdx = keep_grad(fx, x, grad_outputs=eps)
     tr_dfdx = (eps_dfdx * eps).sum(-1)
     return tr_dfdx
 
+
 def exact_jacobian_trace(fx, x):
     vals = []
-    for i in range(x.size(2)):
+    for i in range(x.size(-1)):
         fxi = fx[..., i]
         dfxi_dxi = keep_grad(fxi.sum(), x)[..., i]
         vals.append(dfxi_dxi)
-    vals = torch.stack(vals, dim=2)
-    return vals.sum(dim=2)
+    vals = torch.stack(vals, dim=-1)
+    return vals.sum(dim=-1)
+
 
 def get_prior(batch_size, num_points, inp_dim):
     # -2 to 2, uniform
     return torch.rand(batch_size, num_points, inp_dim) * 4. - 2.
+
 
 def langevin_dynamics(model, sigmas, num_points=2048, dim=3, eps=2*1e-3, num_steps=10):
     with torch.no_grad():
@@ -118,29 +123,77 @@ def langevin_dynamics(model, sigmas, num_points=2048, dim=3, eps=2*1e-3, num_ste
             x_list.append(x.clone())
         return x, x_list
 
-def visualize(pts):
+
+def langevin_dynamics_lsd(f, l=1., e=.01, num_points=2048, n_steps=100, anneal=None):
+        x_k = get_prior(num_points, 2).cuda()
+        # sgld
+        if anneal == "lin":
+            lrs = list(reversed(np.linspace(e, l, n_steps)))
+        elif anneal == "log":
+            lrs = np.logspace(np.log10(l), np.log10(e))
+        else:
+            lrs = [l for _ in range(n_steps)]
+        for this_lr in lrs:
+            x_k.data += this_lr * f(x_k) + torch.randn_like(x_k) * e
+        final_samples = x_k.detach()
+        return final_samples
+
+
+def langevin_dynamics_lsd_3d(f, l=1., e=.01, num_points=2048, n_steps=100, anneal=None):
+        x_k = get_prior(num_points, 3).cuda()
+        # sgld
+        if anneal == "lin":
+            lrs = list(reversed(np.linspace(e, l, n_steps)))
+        elif anneal == "log":
+            lrs = np.logspace(np.log10(l), np.log10(e))
+        else:
+            lrs = [l for _ in range(n_steps)]
+        for this_lr in lrs:
+            x_k.data += this_lr * f(x_k) + torch.randn_like(x_k) * e
+        final_samples = x_k.detach()
+        return final_samples
+
+
+def langevin_dynamics_ebm(model, sigmas, num_points=2048, dim=3, eps=2*1e-3, num_steps=10):
+    x_list = []
+    model.eval()
+    x = get_prior(1, num_points, dim).cuda()
+    
+    x_list.append(x.clone())
+    for sigma in sigmas:
+        alpha = eps * ((sigma / sigmas[-1]) ** 2)
+        for t in range(num_steps):
+            z_t = torch.randn_like(x)
+            x_ = x.detach().requires_grad_()
+            logp_u = model(x_, sigma.view(1, -1))
+            score = keep_grad(logp_u.sum(), x_)
+            x += torch.sqrt(alpha) * z_t + (alpha / 2.) * score
+        x_list.append(x.clone())
+    return x, x_list
+
+
+def visualize(pts, return_fig=False):
     pts = pts.detach().cpu().squeeze().numpy()
-
-    if pts.ndim == 3:
-        pts = pts[0]
-
-    fig = plt.figure(figsize=(8, 8))
+    fig = plt.figure(figsize=(10, 10))
     ax1 = fig.add_subplot(111, projection='3d')
     ax1.scatter(pts[:, 0], pts[:, 1], pts[:, 2], s=20)
     ax1.set_xlim(-4, 4)
     ax1.set_ylim(-4, 4)
     ax1.set_zlim(-4, 4)
     #plt.show()
+    
+    if return_fig:
+        return fig, ax1
 
 
 
 def visualize_2d(pts):
     pts = pts.detach().cpu().squeeze().numpy()
-    fig = plt.figure(figsize=(3, 3))
+    fig = plt.figure(figsize=(10, 10))
     ax1 = fig.add_subplot(111)
     ax1.scatter(pts[:, 0], pts[:, 1])
-    ax1.set_xlim(-1, 1)
-    ax1.set_ylim(-1, 1)
+    ax1.set_xlim(-5, 5)
+    ax1.set_ylim(-5, 5)
     
     
 def get_logger(logpath, filepath, package_files=[], displaying=True, saving=True, debug=False):

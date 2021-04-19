@@ -1,12 +1,12 @@
 data:
   type: datasets.pointflow_datasets
   dataset_type: shapenet15k
-  num_workers: 4
+  num_workers: 0
   cates: ['airplane']
   tr_max_sample_points: 2048
   te_max_sample_points: 2048
-  data_dir: data/toy-airplane-data
-  batch_size: 1
+  data_dir: data/ShapeNetCore.v2.PC15k
+  batch_size: 64
   dataset_scale: 1
   normalize_per_shape: False
   normalize_std_per_axis: False
@@ -14,20 +14,20 @@ data:
 
 log:
   log_freq: 10
-  viz_freq: 100
-  save_freq: 200
-  val_freq: 100
-  save_dir: 'log/sigma-begin-1'  # format: log/<experiment_name>
+  viz_freq: 20
+  save_freq: 20
+  val_freq: 100000  # not supported yet
+  save_dir: 'log/exp2'  # format: log/<experiment_name>
 
 trainer:
   type: trainers.ae_trainer_3D
-  epochs: 2000
+  epochs: 100
   seed: 100
   sigma_begin: 1
   sigma_end: 0.01
   sigma_num: 10
-  c_iters: 10  # critic number of iterations in each round
-  s_iters: 10  # scorenet number of iterations in each round
+  c_iters: 5  # critic number of iterations in each round
+  s_iters: 1  # scorenet number of iterations in each round
   opt_scorenet:
     type: 'adam'
     lr: 1e-3  #  use bs*1e-5/8
@@ -51,18 +51,22 @@ trainer:
     
 models:
   scorenet:  # [dim] - [hid_dims] - [dim]
-    type: models.decoders.resnet_add
-    dim: 3
-    out_dim: 3
-    hidden_size: 256
-    n_blocks: 24
-    sigma_condition: True
-    param_likelihood: False
-    xyz_condition: True
-    z_dim: 128
+    type: small_mlp
+    # type: models.decoders.resnet_add
+    # dim: 3
+    # out_dim: 3
+    # hidden_size: 256
+    # n_blocks: 24
+    # sigma_condition: True
+    # param_likelihood: False
+    # xyz_condition: True
+    # z_dim: 128
+  criticnet:
+    type: small_mlp
 
 inference:
   step_size_ratio: 1
-  num_steps: 10
+  num_steps: 15000
+  eps: 2e-5
   num_points: 2048
   weight: 1
