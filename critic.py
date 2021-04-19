@@ -1,6 +1,20 @@
 import torch
 import torch.nn as nn
 
+class Swish(nn.Module):
+    def __init__(self, dim=-1):
+        super(Swish, self).__init__()
+        if dim > 0:
+            self.beta = nn.Parameter(torch.ones((dim,)))
+        else:
+            self.beta = torch.ones((1,))
+
+    def forward(self, x):
+        if len(x.size()) == 2:
+            return x * torch.sigmoid(self.beta[None, :] * x)
+        else:
+            return x * torch.sigmoid(self.beta[None, None, :] * x)
+
 
 class ResnetBlockConv1d(nn.Module):
     """ 1D-Convolutional ResNet block class.
@@ -99,3 +113,40 @@ class Criticnet(nn.Module):
             net = block(net, c_xyz)
         out = self.conv_out(self.actvn_out(self.bn_out(net))).transpose(1, 2)
         return out
+
+
+class SmallMLP(nn.Module):
+    def __init__(self, in_dim, hidden_dim=256, layer=nn.Linear, dropout=False):
+        super(SmallMLP, self).__init__()
+        out_dim = in_dim
+        c_dim = in_dim + 1
+        if dropout:
+            self.net = nn.Sequential(
+                layer(c_dim, hidden_dim),
+                Swish(hidden_dim),
+                nn.Dropout(.5),
+                layer(hidden_dim, hidden_dim),
+                Swish(hidden_dim),
+                nn.Dropout(.5),
+                layer(hidden_dim, out_dim)
+            )
+        else:
+            self.net = nn.Sequential(
+                layer(c_dim, hidden_dim),
+                Swish(hidden_dim),
+                layer(hidden_dim, hidden_dim),
+                Swish(hidden_dim),
+                layer(hidden_dim, out_dim)
+            )
+        # self.normalized = False
+
+    def forward(self, x, c):
+        batch_size, num_points, D  = x.size()
+        c_expand = c.unsqueeze(1).expand(-1, num_points, -1)
+        c_xyz = torch.cat([x, c_expand], dim=2)
+        out = self.net(c_xyz)
+        return out
+        # if self.normalized:
+            # return out / (out.norm(dim=1, keepdim=True) + 1e-6)
+        # else:
+            # return out
