@@ -124,7 +124,7 @@ def visualize(pts):
     if pts.ndim == 3:
         pts = pts[0]
 
-    fig = plt.figure(figsize=(3, 3))
+    fig = plt.figure(figsize=(8, 8))
     ax1 = fig.add_subplot(111, projection='3d')
     ax1.scatter(pts[:, 0], pts[:, 1], pts[:, 2], s=20)
     ax1.set_xlim(-4, 4)
