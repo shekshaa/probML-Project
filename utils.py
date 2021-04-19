@@ -101,14 +101,14 @@ def exact_jacobian_trace(fx, x):
     return vals.sum(dim=2)
 
 def get_prior(batch_size, num_points, inp_dim):
-    # -1 to 1, uniform
-    return torch.rand(batch_size, num_points, inp_dim) * 2. - 1.
+    # -2 to 2, uniform
+    return torch.rand(batch_size, num_points, inp_dim) * 4. - 2.
 
 def langevin_dynamics(model, sigmas, num_points=2048, dim=3, eps=2*1e-3, num_steps=10):
     with torch.no_grad():
         x_list = []
         model.eval()
-        x = get_prior(1, num_points, dim).cuda()
+        x = get_prior(1, num_points, dim).to(sigmas.device)
         x_list.append(x.clone())
         for sigma in sigmas:
             alpha = eps * ((sigma / sigmas[-1]) ** 2)
@@ -120,12 +120,16 @@ def langevin_dynamics(model, sigmas, num_points=2048, dim=3, eps=2*1e-3, num_ste
 
 def visualize(pts):
     pts = pts.detach().cpu().squeeze().numpy()
+
+    if pts.ndim == 3:
+        pts = pts[0]
+
     fig = plt.figure(figsize=(3, 3))
     ax1 = fig.add_subplot(111, projection='3d')
     ax1.scatter(pts[:, 0], pts[:, 1], pts[:, 2], s=20)
-    ax1.set_xlim(-1, 1)
-    ax1.set_ylim(-1, 1)
-    ax1.set_zlim(-1, 1)
+    ax1.set_xlim(-4, 4)
+    ax1.set_ylim(-4, 4)
+    ax1.set_zlim(-4, 4)
     #plt.show()
 
 
