@@ -56,3 +56,12 @@ def inf_train_gen(data, rng=None, n_points=200):
         X = np.vstack([outer_circ_x, outer_circ_y]).T
         
         return X
+
+    elif data == 'gaussian_3d':
+        return np.random.randn(n_points, 3) * 0.2
+    
+    elif data == 'multi_modal_gaussian_3d':
+        dist1 =  np.random.randn(n_points, 3) * 0.2 - np.array([2, 2, 0])
+        dist2 = np.random.randn(n_points, 3) * 0.2 + np.array([2, 2, 0])
+
+        return np.concatenate([dist1, dist2])

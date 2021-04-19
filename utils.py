@@ -102,7 +102,7 @@ def exact_jacobian_trace(fx, x):
     return vals.sum(dim=-1)
 
 def get_prior(num_points, inp_dim):
-    return torch.rand(num_points, inp_dim) * 2. - 1.
+    return torch.rand(num_points, inp_dim) * 4. - 2.
 
 def langevin_dynamics(model, sigmas, num_points=2048, dim=3, eps=2*1e-3, num_steps=10):
     with torch.no_grad():
@@ -120,6 +120,21 @@ def langevin_dynamics(model, sigmas, num_points=2048, dim=3, eps=2*1e-3, num_ste
 
 def langevin_dynamics_lsd(f, l=1., e=.01, num_points=2048, n_steps=100, anneal=None):
         x_k = get_prior(num_points, 2).cuda()
+        # sgld
+        if anneal == "lin":
+            lrs = list(reversed(np.linspace(e, l, n_steps)))
+        elif anneal == "log":
+            lrs = np.logspace(np.log10(l), np.log10(e))
+        else:
+            lrs = [l for _ in range(n_steps)]
+        for this_lr in lrs:
+            x_k.data += this_lr * f(x_k) + torch.randn_like(x_k) * e
+        final_samples = x_k.detach()
+        return final_samples
+
+
+def langevin_dynamics_lsd_3d(f, l=1., e=.01, num_points=2048, n_steps=100, anneal=None):
+        x_k = get_prior(num_points, 3).cuda()
         # sgld
         if anneal == "lin":
             lrs = list(reversed(np.linspace(e, l, n_steps)))
@@ -154,12 +169,12 @@ def langevin_dynamics_ebm(model, sigmas, num_points=2048, dim=3, eps=2*1e-3, num
 
 def visualize(pts):
     pts = pts.detach().cpu().squeeze().numpy()
-    fig = plt.figure(figsize=(3, 3))
+    fig = plt.figure(figsize=(10, 10))
     ax1 = fig.add_subplot(111, projection='3d')
     ax1.scatter(pts[:, 0], pts[:, 1], pts[:, 2], s=20)
-    ax1.set_xlim(-1, 1)
-    ax1.set_ylim(-1, 1)
-    ax1.set_zlim(-1, 1)
+    ax1.set_xlim(-4, 4)
+    ax1.set_ylim(-4, 4)
+    ax1.set_zlim(-4, 4)
     #plt.show()
 
 
