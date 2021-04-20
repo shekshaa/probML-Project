@@ -23,9 +23,9 @@ trainer:
   type: trainers.ae_trainer_3D
   epochs: 100
   seed: 100
-  sigma_begin: 1
-  sigma_end: 0.01
-  sigma_num: 10
+  sigma_begin: 0.5
+  sigma_end: 0.001
+  sigma_num: 50
   c_iters: 5  # critic number of iterations in each round
   s_iters: 1  # scorenet number of iterations in each round
   opt_scorenet:
